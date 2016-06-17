@@ -1,14 +1,10 @@
 RM := rm -rf
 CC := gcc
 
-_SRCS += \
-core.c 
-
 OBJS += \
 core.o 
 
-C_DEPS += \
-core.d 
+C_DEPS += $(OBJS:.o=.d)
 
 C_FLAGS += -std=gnu99 -O0 -g3 -Wall -fmessage-length=0
 
@@ -32,7 +28,6 @@ endif
 
 all: disp_calc
 
-# Tool invocations
 disp_calc: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
@@ -40,7 +35,6 @@ disp_calc: $(OBJS) $(USER_OBJS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-# Other Targets
 clean:
 	-$(RM) $(EXECUTABLES)$(OBJS)$(C_DEPS) disp_calc
 	-@echo ' '
