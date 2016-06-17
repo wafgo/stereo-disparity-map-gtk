@@ -26,9 +26,9 @@ endif
 endif
 
 
-all: disp_calc
+all: disp_calc.elf
 
-disp_calc: $(OBJS) $(USER_OBJS)
+disp_calc.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
 	gcc  -o "disp_calc" $(OBJS) $(USER_OBJS) $(LIBS)
