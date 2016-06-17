@@ -4,6 +4,8 @@ CC := gcc
 OBJS += \
 core.o 
 
+USER_OBJS +=
+
 C_DEPS += $(OBJS:.o=.d)
 
 C_FLAGS += -std=gnu99 -O0 -g3 -Wall -fmessage-length=0
