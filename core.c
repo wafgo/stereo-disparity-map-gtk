@@ -210,6 +210,7 @@ int calculate_disparity(GdkPixbuf* left, GdkPixbuf* right, MyApp *app) {
 						img_width, cmp, cmp_win);
 
 				cmp++;
+				bcnt++;
 				tmp_res = get_correlation_value(ref_win, cmp_win,
 				DISP_WINDOW_WIDTH * DISP_WINDOW_HEIGTH);
 				if (tmp_res < min) {
@@ -227,11 +228,6 @@ int calculate_disparity(GdkPixbuf* left, GdkPixbuf* right, MyApp *app) {
 			disp_rgb->b = colorGradient[at_column * 255/25][0];
 			disp_rgb->g = colorGradient[at_column * 255/25][1];
 			disp_rgb->r = colorGradient[at_column * 255/25][2];
-//			memcpy(disp_rgb, &lut[at_column], sizeof(*disp_rgb));
-//			*disp_rgb = *lut[at_column];
-//			disp_rgb->r = MIN((at_column * 10), 255);
-//			disp_rgb->g = 5;
-//			disp_rgb->b = 5;
 			min = UINT_MAX;
 			at_column = 0;
 			ref++;
@@ -239,7 +235,6 @@ int calculate_disparity(GdkPixbuf* left, GdkPixbuf* right, MyApp *app) {
 			fetch_window(DISP_WINDOW_WIDTH, DISP_WINDOW_HEIGTH, img_width, ref, ref_win);
 			disp_rgb++;
 		}
-		//printf("\n");
 		ref += DISP_WINDOW_WIDTH;
 		cmp += DISP_WINDOW_WIDTH;
 		disp_rgb += DISP_WINDOW_WIDTH;
@@ -248,7 +243,7 @@ int calculate_disparity(GdkPixbuf* left, GdkPixbuf* right, MyApp *app) {
 
 	time1 = time1/CLOCKS_PER_SEC;
 
-	printf("Berechnungszeit %lf sec\n", time1);
+	printf("Execution Time is %lf s\n", time1);
 
 	display_disparity_map(app, dispWindow, dispImage);
 
@@ -267,9 +262,9 @@ void create_windows(GtkWidget *widget, MyApp *app) {
 	app->windows = g_slist_prepend(app->windows, rightWindow);
 
 	GtkWidget *leftImage = gtk_image_new_from_file(
-			"/home/sefo/devel/stereoVision/left.bmp");
+			"pics/LEFT.BMP");
 	GtkWidget *rightImage = gtk_image_new_from_file(
-			"/home/sefo/devel/stereoVision/right.bmp");
+			"pics/RIGHT.BMP");
 
 	GdkPixbuf *pixBufLeft = gtk_image_get_pixbuf(leftImage);
 	GdkPixbuf *pixBufRight = gtk_image_get_pixbuf(rightImage);
@@ -294,8 +289,8 @@ void create_windows(GtkWidget *widget, MyApp *app) {
 	g_signal_connect(G_OBJECT (rightWindow), "destroy",
 			G_CALLBACK (on_window_destroy), app);
 
-	//gtk_widget_show_all(leftWindow);
-	//gtk_widget_show_all(rightWindow);
+	gtk_widget_show_all(leftWindow);
+	gtk_widget_show_all(rightWindow);
 }
 
 int main(int argc, char *argv[]) {
