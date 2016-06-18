@@ -30,6 +30,10 @@
 *.i*86
 *.x86_64
 *.hex
+# eclipse project
+.project/
+.cproject/
+.settings/
 
 # Debug files
 *.dSYM/
