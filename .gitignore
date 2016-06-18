@@ -31,8 +31,8 @@
 *.x86_64
 *.hex
 # eclipse project
-.project/
-.cproject/
+.project
+.cproject
 .settings/
 
 # Debug files
