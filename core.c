@@ -210,7 +210,6 @@ int calculate_disparity(GdkPixbuf* left, GdkPixbuf* right, MyApp *app) {
 						img_width, cmp, cmp_win);
 
 				cmp++;
-				bcnt++;
 				tmp_res = get_correlation_value(ref_win, cmp_win,
 				DISP_WINDOW_WIDTH * DISP_WINDOW_HEIGTH);
 				if (tmp_res < min) {
