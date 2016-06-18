@@ -10,12 +10,12 @@ C_DEPS += $(OBJS:.o=.d)
 
 C_FLAGS += -std=gnu99 -O0 -g3 -Wall -fmessage-length=0
 
-INCLUDE_PATH += -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/pango-1.0 -I/usr/include/cairo -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/atk-1.0
+INCLUDE_PATH += -I/usr/include/gtk-3.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/pango-1.0 -I/usr/include/cairo -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/atk-1.0
 
 %.o: %.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	$(CC) -I/usr/include/gtk-3.0 $(INCLUDE_PATH) $(C_FLAGS) -c -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	$(CC) $(INCLUDE_PATH) $(C_FLAGS) -c -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

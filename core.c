@@ -19,9 +19,16 @@
 
 #define ARRAY_SIZE(_X_) (sizeof(_X_)/sizeof(_X_[0]))
 
+#define MAX_DISPARTY	25
+
+struct __attribute__ ((__packed__)) rgb_pixels {
+	guchar r;
+	guchar g;
+	guchar b;
+};
+
 typedef struct {
 	GSList *windows;
-
 } MyApp;
 
 void on_window_destroy(GtkWidget *widget, MyApp *app) {
@@ -36,11 +43,7 @@ void on_window_destroy(GtkWidget *widget, MyApp *app) {
 	}
 }
 
-struct __attribute__ ((__packed__)) rgb_pixels {
-	guchar r;
-	guchar g;
-	guchar b;
-};
+static struct rgb_pixels* lut;
 
 static GtkWidget* create_window_for_disparity_map(void) {
 	return gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -84,7 +87,7 @@ static void fetch_window(guint width, guint height, guint image_width,
 	}
 }
 
-static guint get_correlation_value(struct rgb_pixels * ref,
+static guint get_correlation(struct rgb_pixels * ref,
 		struct rgb_pixels * cmp, guint size) {
 	guint res = 0;
 	int tmpr, tmpg, tmpb;
@@ -99,53 +102,31 @@ static guint get_correlation_value(struct rgb_pixels * ref,
 		gc = (int) cmp[i].g;
 		bc = (int) cmp[i].b;
 
-		tmpr = abs(rr * rr - rc * rc);
-		tmpg = abs(gr * gr - gc * gc);
-		tmpb = abs(br * br - bc * bc);
+		tmpr = abs(rr - rc);
+		tmpg = abs(gr - gc);
+		tmpb = abs(br - bc);
 		res += tmpr + tmpg + tmpb;
 	}
 	return res;
 }
-
-static struct rgb_pixels lut[25];
-
-void fill_lut( void ) {
-	int cnt = ARRAY_SIZE(lut);
-	int third = cnt/3;
-
-	for (int i = 0; i < cnt; ++i) {
-		struct rgb_pixels* entry = &lut[i];
-		if (i < third) {
-			entry->g = entry->b = 0;
-			entry->r = 255 / third * (i + 1);
-		} else if (i >= third && i < (2*third)) {
-			entry->r = entry->b = 0;
-			entry->g = (255 / (2 * third)) * (i + 1);
-		} else {
-			entry->r = entry->g = 0;
-			entry->b = 255 / cnt * (i + 1);
-		}
-	}
-}
-static unsigned char colorGradient[255][3];
 
 static void getHeatMapColor(float value, float *red, float *green, float *blue)
 {
   #define NUM_COLORS  7
   static float color[NUM_COLORS][3] = { {0,0,0.5}, {0,0,1}, {0,1,1},{0,1,0}, {1,1,0}, {1,0,0}, {0.5,0,0}};
 
-  int idx1;        			// Our desired color will be between these two indexes in "color".
+  int idx1;
   int idx2;
-  float fractBetween = 0;  	// Fraction between "idx1" and "idx2" where our value is.
+  float fractBetween = 0;
 
-  if(value <= 0)	      {  idx1 = idx2 = 0;            }    // accounts for an input <=0
-  else if(value >= 1)	  {  idx1 = idx2 = NUM_COLORS-1; }    // accounts for an input >=0
+  if(value <= 0)	      {  idx1 = idx2 = 0;            }
+  else if(value >= 1)	  {  idx1 = idx2 = NUM_COLORS-1; }
   else
   {
-    value = value * (NUM_COLORS-1);        // Will multiply value by 3.
-    idx1  = floor(value);                  // Our desired color will be after this index.
-    idx2  = idx1+1;                        // ... and before this index (inclusive).
-    fractBetween = value - (float)idx1;    // Distance between the two indexes (0-1).
+    value = value * (NUM_COLORS-1);
+    idx1  = floor(value);
+    idx2  = idx1+1;
+    fractBetween = value - (float)idx1;
   }
 
   *red   = (color[idx2][0] - color[idx1][0])*fractBetween + color[idx1][0];
@@ -155,11 +136,14 @@ static void getHeatMapColor(float value, float *red, float *green, float *blue)
 
 static void calc_color_gradient() {
 	float r, g, b;
+	lut = (struct rgb_pixels*) malloc(255 * sizeof(struct rgb_pixels));
+
 	for (int i = 0; i <= 255; i++) {
+		struct rgb_pixels* entry = &lut[i];
 		getHeatMapColor((float) (i) / 255, &r, &g, &b);
-		colorGradient[i][0] = (int) (255 * b);
-		colorGradient[i][1] = (int) (255 * g);
-		colorGradient[i][2] = (int) (255 * r);
+		entry->b = (int) (255.0f * b);
+		entry->g = (int) (255.0f * g);
+		entry->r = (int) (255.0f * r);
 	}
 }
 
@@ -197,20 +181,24 @@ int calculate_disparity(GdkPixbuf* left, GdkPixbuf* right, MyApp *app) {
 	guint min = UINT_MAX;
 	int at_column = 0;
 
-	fill_lut();
 	double time1=0.0, tstart;
 	tstart = clock();
 	for (int row = 0; row < (img_height - DISP_WINDOW_HEIGTH); ++row) {
 		for (int col_left = 0; col_left < (img_width - DISP_WINDOW_WIDTH);
 				++col_left) {
+#ifdef MAX_DISPARTY
+			int pix_cnt = 0;
+#endif
 			for (int col_right = 0; col_right < (img_width - DISP_WINDOW_WIDTH - col_left);
 					++col_right) {
 				guint tmp_res;
 				fetch_window(DISP_WINDOW_WIDTH, DISP_WINDOW_HEIGTH,
 						img_width, cmp, cmp_win);
-
+#ifdef MAX_DISPARTY
+				pix_cnt++;
+#endif
 				cmp++;
-				tmp_res = get_correlation_value(ref_win, cmp_win,
+				tmp_res = get_correlation(ref_win, cmp_win,
 				DISP_WINDOW_WIDTH * DISP_WINDOW_HEIGTH);
 				if (tmp_res < min) {
 					min = tmp_res;
@@ -218,15 +206,20 @@ int calculate_disparity(GdkPixbuf* left, GdkPixbuf* right, MyApp *app) {
 //					if (min < 50000)
 //						break;
 				}
+#ifdef MAX_DISPARTY
+				if (pix_cnt > MAX_DISPARTY)
+					break;
+#endif
 			}
 			cmp = rrgb;
-
-			if (at_column >= ARRAY_SIZE(lut))
+#ifdef MAX_DISPARTY
+			if (at_column >= MAX_DISPARTY)
 				at_column = 0;
+#endif
 
-			disp_rgb->b = colorGradient[at_column * 255/25][0];
-			disp_rgb->g = colorGradient[at_column * 255/25][1];
-			disp_rgb->r = colorGradient[at_column * 255/25][2];
+			disp_rgb->b = lut[at_column * 255/25].b;
+			disp_rgb->g = lut[at_column * 255/25].g;
+			disp_rgb->r = lut[at_column * 255/25].r;
 			min = UINT_MAX;
 			at_column = 0;
 			ref++;
@@ -242,7 +235,7 @@ int calculate_disparity(GdkPixbuf* left, GdkPixbuf* right, MyApp *app) {
 
 	time1 = time1/CLOCKS_PER_SEC;
 
-	printf("Execution Time is %lf s\n", time1);
+	printf("Execution Time is %.2lf s\n", time1);
 
 	display_disparity_map(app, dispWindow, dispImage);
 
@@ -265,8 +258,8 @@ void create_windows(GtkWidget *widget, MyApp *app) {
 	GtkWidget *rightImage = gtk_image_new_from_file(
 			"pics/RIGHT.BMP");
 
-	GdkPixbuf *pixBufLeft = gtk_image_get_pixbuf(leftImage);
-	GdkPixbuf *pixBufRight = gtk_image_get_pixbuf(rightImage);
+	GdkPixbuf *pixBufLeft = gtk_image_get_pixbuf((GtkImage*)leftImage);
+	GdkPixbuf *pixBufRight = gtk_image_get_pixbuf((GtkImage*)rightImage);
 
 	calculate_disparity(pixBufLeft, pixBufRight, app);
 
@@ -274,8 +267,8 @@ void create_windows(GtkWidget *widget, MyApp *app) {
 	gtk_container_set_border_width(GTK_CONTAINER(rightWindow), 25);
 	gtk_container_add(GTK_CONTAINER(leftWindow), leftImage);
 	gtk_container_add(GTK_CONTAINER(rightWindow), rightImage);
-	titleLeft = g_strdup_printf("Window %d", g_slist_length(app->windows));
-	titleRight = g_strdup_printf("Window %d", g_slist_length(app->windows));
+	titleLeft = g_strdup_printf("Left %d", g_slist_length(app->windows));
+	titleRight = g_strdup_printf("Right %d", g_slist_length(app->windows));
 	gtk_window_set_title(GTK_WINDOW(leftWindow), titleLeft);
 	gtk_window_set_title(GTK_WINDOW(rightWindow), titleRight);
 	g_free(titleLeft);
